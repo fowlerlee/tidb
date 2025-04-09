@@ -1,0 +1,9 @@
+database:
+  host: "localhost"
+  port: 4000 # Default TiDB port
+  user: "root"
+  password: "" # Default empty password for TiDB
+  dbname: "erp_db"
+
+server:
+  port: 8080
