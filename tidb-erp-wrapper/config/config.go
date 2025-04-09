@@ -23,6 +23,13 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("config/")
 
+	// Set up environment variable bindings
+	viper.BindEnv("database.host", "DATABASE_HOST")
+	viper.BindEnv("database.port", "DATABASE_PORT")
+	viper.BindEnv("database.user", "DATABASE_USER")
+	viper.BindEnv("database.password", "DATABASE_PASSWORD")
+	viper.BindEnv("database.dbname", "DATABASE_NAME")
+
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
