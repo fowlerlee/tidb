@@ -15,7 +15,11 @@ import (
 	"tidb-erp-wrapper/internal/db"
 	"tidb-erp-wrapper/internal/models"
 	"tidb-erp-wrapper/internal/services/bookkeeping"
+	"tidb-erp-wrapper/internal/services/hr"
+	"tidb-erp-wrapper/internal/services/materials"
 	"tidb-erp-wrapper/internal/services/procurement"
+	"tidb-erp-wrapper/internal/services/quality"
+	"tidb-erp-wrapper/internal/services/sales"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,6 +50,10 @@ func main() {
 	// Initialize services
 	procurementSvc := procurement.NewService(dbHandler)
 	bookkeepingSvc := bookkeeping.NewService(dbHandler)
+	salesSvc := sales.NewService(dbHandler)
+	materialsSvc := materials.NewService(dbHandler)
+	hrSvc := hr.NewService(dbHandler)
+	qualitySvc := quality.NewService(dbHandler)
 
 	// Initialize Gin router
 	gin.SetMode(gin.ReleaseMode)
@@ -171,6 +179,197 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"balance": balance})
+	})
+
+	// Sales endpoints
+	r.POST("/customers", func(c *gin.Context) {
+		var customer models.Customer
+		if err := c.BindJSON(&customer); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := salesSvc.CreateCustomer(c.Request.Context(), &customer); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, customer)
+	})
+
+	r.POST("/price-lists", func(c *gin.Context) {
+		var request struct {
+			PriceList models.PriceList       `json:"price_list"`
+			Items     []models.PriceListItem `json:"items"`
+		}
+		if err := c.BindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := salesSvc.CreatePriceList(c.Request.Context(), &request.PriceList, request.Items); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, request)
+	})
+
+	r.POST("/sales-orders", func(c *gin.Context) {
+		var request struct {
+			SalesOrder models.SalesOrder       `json:"sales_order"`
+			Items      []models.SalesOrderItem `json:"items"`
+		}
+		if err := c.BindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := salesSvc.CreateSalesOrder(c.Request.Context(), &request.SalesOrder, request.Items); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, request)
+	})
+
+	// Materials Management endpoints
+	r.POST("/warehouses", func(c *gin.Context) {
+		var warehouse models.Warehouse
+		if err := c.BindJSON(&warehouse); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := materialsSvc.CreateWarehouse(c.Request.Context(), &warehouse); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, warehouse)
+	})
+
+	r.POST("/products", func(c *gin.Context) {
+		var product models.Product
+		if err := c.BindJSON(&product); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := materialsSvc.CreateProduct(c.Request.Context(), &product); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, product)
+	})
+
+	r.GET("/products/low-stock", func(c *gin.Context) {
+		products, err := materialsSvc.GetLowStockProducts(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, products)
+	})
+
+	// Human Resources endpoints
+	r.POST("/departments", func(c *gin.Context) {
+		var department models.Department
+		if err := c.BindJSON(&department); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := hrSvc.CreateDepartment(c.Request.Context(), &department); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, department)
+	})
+
+	r.POST("/employees", func(c *gin.Context) {
+		var employee models.Employee
+		if err := c.BindJSON(&employee); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := hrSvc.CreateEmployee(c.Request.Context(), &employee); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, employee)
+	})
+
+	r.POST("/leave-requests", func(c *gin.Context) {
+		var request models.LeaveRequest
+		if err := c.BindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := hrSvc.RequestLeave(c.Request.Context(), &request); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, request)
+	})
+
+	// Quality Management endpoints
+	r.POST("/quality-parameters", func(c *gin.Context) {
+		var parameter models.QualityParameter
+		if err := c.BindJSON(&parameter); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := qualitySvc.CreateQualityParameter(c.Request.Context(), &parameter); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, parameter)
+	})
+
+	r.POST("/inspection-plans", func(c *gin.Context) {
+		var request struct {
+			Plan       models.InspectionPlan            `json:"plan"`
+			Parameters []models.InspectionPlanParameter `json:"parameters"`
+		}
+		if err := c.BindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := qualitySvc.CreateInspectionPlan(c.Request.Context(), &request.Plan, request.Parameters); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, request)
+	})
+
+	r.POST("/quality-inspections", func(c *gin.Context) {
+		var request struct {
+			Inspection models.QualityInspection  `json:"inspection"`
+			Results    []models.InspectionResult `json:"results"`
+		}
+		if err := c.BindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := qualitySvc.CreateQualityInspection(c.Request.Context(), &request.Inspection, request.Results); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, request)
 	})
 
 	// Server configuration
