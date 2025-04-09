@@ -3,9 +3,9 @@ package bookkeeping
 import (
 	"context"
 	"testing"
-	"time"
-	"tidb-erp-wrapper/internal/models"
-	"tidb-erp-wrapper/internal/testutil"
+
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/models"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/testutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func TestBookkeepingService(t *testing.T) {
 		invalidAccount.Type = "InvalidType"
 		err = svc.CreateAccount(context.Background(), invalidAccount)
 		assert.Error(t, err)
-	},
+	})
 
 	t.Run("CreateJournalEntry", func(t *testing.T) {
 		// Create test accounts first
@@ -54,13 +54,13 @@ func TestBookkeepingService(t *testing.T) {
 		entry := testutil.GenerateJournalEntry(0)
 		lines := []models.JournalLine{
 			{
-				AccountID:    debitAccount.ID,
+				AccountID:   debitAccount.ID,
 				Description: "Test debit",
 				DebitAmount: 1000.0,
 			},
 			{
-				AccountID:     creditAccount.ID,
-				Description:   "Test credit",
+				AccountID:    creditAccount.ID,
+				Description:  "Test credit",
 				CreditAmount: 1000.0,
 			},
 		}
@@ -73,13 +73,13 @@ func TestBookkeepingService(t *testing.T) {
 		unbalancedEntry := testutil.GenerateJournalEntry(0)
 		unbalancedLines := []models.JournalLine{
 			{
-				AccountID:    debitAccount.ID,
+				AccountID:   debitAccount.ID,
 				Description: "Test debit",
 				DebitAmount: 1000.0,
 			},
 			{
-				AccountID:     creditAccount.ID,
-				Description:   "Test credit",
+				AccountID:    creditAccount.ID,
+				Description:  "Test credit",
 				CreditAmount: 900.0, // Unbalanced amount
 			},
 		}
@@ -92,20 +92,20 @@ func TestBookkeepingService(t *testing.T) {
 		invalidEntry := testutil.GenerateJournalEntry(0)
 		invalidLines := []models.JournalLine{
 			{
-				AccountID:    999999, // Non-existent account
+				AccountID:   999999, // Non-existent account
 				Description: "Test debit",
 				DebitAmount: 1000.0,
 			},
 			{
-				AccountID:     creditAccount.ID,
-				Description:   "Test credit",
+				AccountID:    creditAccount.ID,
+				Description:  "Test credit",
 				CreditAmount: 1000.0,
 			},
 		}
 
 		err = svc.CreateJournalEntry(context.Background(), invalidEntry, invalidLines)
 		assert.Error(t, err)
-	},),
+	})
 
 	t.Run("GetJournalEntry", func(t *testing.T) {
 		// Create test data
@@ -120,13 +120,13 @@ func TestBookkeepingService(t *testing.T) {
 		entry := testutil.GenerateJournalEntry(0)
 		lines := []models.JournalLine{
 			{
-				AccountID:    debitAccount.ID,
+				AccountID:   debitAccount.ID,
 				Description: "Test debit",
 				DebitAmount: 1000.0,
 			},
 			{
-				AccountID:     creditAccount.ID,
-				Description:   "Test credit",
+				AccountID:    creditAccount.ID,
+				Description:  "Test credit",
 				CreditAmount: 1000.0,
 			},
 		}
@@ -148,7 +148,7 @@ func TestBookkeepingService(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, fetchedEntry)
 		assert.Nil(t, fetchedLines)
-	}),
+	})
 
 	t.Run("GetAccountBalance", func(t *testing.T) {
 		// Create test account
@@ -160,13 +160,13 @@ func TestBookkeepingService(t *testing.T) {
 		entry := testutil.GenerateJournalEntry(0)
 		lines := []models.JournalLine{
 			{
-				AccountID:    account.ID,
+				AccountID:   account.ID,
 				Description: "Test debit",
 				DebitAmount: 1000.0,
 			},
 			{
-				AccountID:     account.ID, // Same account for testing
-				Description:   "Test credit",
+				AccountID:    account.ID, // Same account for testing
+				Description:  "Test credit",
 				CreditAmount: 400.0,
 			},
 		}
@@ -183,7 +183,7 @@ func TestBookkeepingService(t *testing.T) {
 		balance, err = svc.GetAccountBalance(context.Background(), 999999)
 		assert.Error(t, err)
 		assert.Zero(t, balance)
-	}),
+	})
 
 	t.Run("TransactionRollback", func(t *testing.T) {
 		// Create test account
@@ -199,13 +199,13 @@ func TestBookkeepingService(t *testing.T) {
 		entry := testutil.GenerateJournalEntry(0)
 		lines := []models.JournalLine{
 			{
-				AccountID:    account.ID,
+				AccountID:   account.ID,
 				Description: "Test debit",
 				DebitAmount: 1000.0,
 			},
 			{
-				AccountID:     999999, // Non-existent account
-				Description:   "Test credit",
+				AccountID:    999999, // Non-existent account
+				Description:  "Test credit",
 				CreditAmount: 1000.0,
 			},
 		}
@@ -217,7 +217,7 @@ func TestBookkeepingService(t *testing.T) {
 		currentBalance, err := svc.GetAccountBalance(context.Background(), account.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, initialBalance, currentBalance)
-	}),
+	})
 
 	t.Run("ConcurrentTransactions", func(t *testing.T) {
 		// Create test account
@@ -232,13 +232,13 @@ func TestBookkeepingService(t *testing.T) {
 				entry := testutil.GenerateJournalEntry(0)
 				lines := []models.JournalLine{
 					{
-						AccountID:    account.ID,
+						AccountID:   account.ID,
 						Description: "Test debit",
 						DebitAmount: 100.0,
 					},
 					{
-						AccountID:     account.ID,
-						Description:   "Test credit",
+						AccountID:    account.ID,
+						Description:  "Test credit",
 						CreditAmount: 100.0,
 					},
 				}

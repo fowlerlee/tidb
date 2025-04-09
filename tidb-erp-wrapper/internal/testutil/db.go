@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"tidb-erp-wrapper/config"
-	"tidb-erp-wrapper/internal/db"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/config"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/db"
 
 	_ "github.com/go-sql-driver/mysql"
 )

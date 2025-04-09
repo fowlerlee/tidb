@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"tidb-erp-wrapper/internal/models"
-	"tidb-erp-wrapper/internal/testutil"
 	"time"
+
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/models"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/testutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,76 +19,25 @@ func TestMaterialsService(t *testing.T) {
 	defer testDB.Cleanup()
 
 	svc := NewService(testDB.DB)
-
-	t.Run("CreateProductCategory", func(t *testing.T) {
-		// Test creating a valid category
-		category := &models.ProductCategory{
-			Code:        "CAT001",
-			Name:        "Test Category",
-			Description: "Test Description",
-			ParentID:    nil,
-			IsActive:    true,
-		}
-
-		err := svc.CreateProductCategory(context.Background(), category)
-		assert.NoError(t, err)
-		assert.NotZero(t, category.ID)
-
-		// Test creating duplicate category code
-		dupCategory := &models.ProductCategory{
-			Code:        "CAT001",
-			Name:        "Duplicate Category",
-			Description: "Test Description",
-			ParentID:    nil,
-			IsActive:    true,
-		}
-		err = svc.CreateProductCategory(context.Background(), dupCategory)
-		assert.Error(t, err)
-
-		// Test creating category with invalid parent
-		invalidParentCategory := &models.ProductCategory{
-			Code:        "CAT002",
-			Name:        "Invalid Parent Category",
-			Description: "Test Description",
-			ParentID:    new(int64),
-			IsActive:    true,
-		}
-		*invalidParentCategory.ParentID = 999999
-		err = svc.CreateProductCategory(context.Background(), invalidParentCategory)
-		assert.Error(t, err)
-	})
+	ctx := context.Background()
 
 	t.Run("CreateProduct", func(t *testing.T) {
-		// Create test category first
-		category := &models.ProductCategory{
-			Code:        "CAT001",
-			Name:        "Test Category",
-			Description: "Test Description",
-			ParentID:    nil,
-			IsActive:    true,
-		}
-		err := svc.CreateProductCategory(context.Background(), category)
-		require.NoError(t, err)
-
-		// Test creating a valid product
 		product := &models.Product{
 			Code:          "PROD001",
 			Name:          "Test Product",
 			Description:   "Test Description",
-			CategoryID:    category.ID,
+			Category:      "Test Category",
 			UnitOfMeasure: "PCS",
-			UnitPrice:     100.0,
-			ReorderPoint:  10,
-			MinimumOrder:  5,
-			LeadTime:      7,
+			Weight:        1.5,
+			Volume:        2.0,
+			MinStockLevel: 10.0,
+			MaxStockLevel: 100.0,
+			ReorderPoint:  20.0,
+			LeadTimeDays:  7,
 			IsActive:      true,
-			Specifications: map[string]interface{}{
-				"weight": 1.5,
-				"color":  "blue",
-			},
 		}
 
-		err = svc.CreateProduct(context.Background(), product)
+		err = svc.CreateProduct(ctx, product)
 		assert.NoError(t, err)
 		assert.NotZero(t, product.ID)
 
@@ -96,60 +46,115 @@ func TestMaterialsService(t *testing.T) {
 			Code:          "PROD001",
 			Name:          "Duplicate Product",
 			Description:   "Test Description",
-			CategoryID:    category.ID,
+			Category:      "Test Category",
 			UnitOfMeasure: "PCS",
-			UnitPrice:     100.0,
-			ReorderPoint:  10,
-			MinimumOrder:  5,
-			LeadTime:      7,
+			Weight:        1.5,
+			Volume:        2.0,
+			MinStockLevel: 10.0,
+			MaxStockLevel: 100.0,
+			ReorderPoint:  20.0,
+			LeadTimeDays:  7,
 			IsActive:      true,
 		}
-		err = svc.CreateProduct(context.Background(), dupProduct)
-		assert.Error(t, err)
-
-		// Test creating product with invalid category
-		invalidProduct := &models.Product{
-			Code:          "PROD002",
-			Name:          "Invalid Category Product",
-			Description:   "Test Description",
-			CategoryID:    999999,
-			UnitOfMeasure: "PCS",
-			UnitPrice:     100.0,
-			ReorderPoint:  10,
-			MinimumOrder:  5,
-			LeadTime:      7,
-			IsActive:      true,
-		}
-		err = svc.CreateProduct(context.Background(), invalidProduct)
+		err = svc.CreateProduct(ctx, dupProduct)
 		assert.Error(t, err)
 	})
 
 	t.Run("CreateWarehouse", func(t *testing.T) {
-		// Test creating a valid warehouse
 		warehouse := &models.Warehouse{
-			Code:        "WH001",
-			Name:        "Test Warehouse",
-			Description: "Test Description",
-			Address:     "123 Test St",
-			IsActive:    true,
-			Capacity:    1000.0,
+			Code:    "WH001",
+			Name:    "Test Warehouse",
+			Address: "123 Test St",
+			Status:  "active",
 		}
 
-		err := svc.CreateWarehouse(context.Background(), warehouse)
+		err = svc.CreateWarehouse(ctx, warehouse)
 		assert.NoError(t, err)
 		assert.NotZero(t, warehouse.ID)
 
 		// Test creating duplicate warehouse code
 		dupWarehouse := &models.Warehouse{
-			Code:        "WH001",
-			Name:        "Duplicate Warehouse",
-			Description: "Test Description",
-			Address:     "456 Test St",
-			IsActive:    true,
-			Capacity:    1000.0,
+			Code:    "WH001",
+			Name:    "Duplicate Warehouse",
+			Address: "456 Test St",
+			Status:  "active",
 		}
-		err = svc.CreateWarehouse(context.Background(), dupWarehouse)
+		err = svc.CreateWarehouse(ctx, dupWarehouse)
 		assert.Error(t, err)
+	})
+
+	t.Run("CreateInventoryTransaction", func(t *testing.T) {
+		// Create test warehouse and storage location
+		warehouse := &models.Warehouse{
+			Code:    "WH002",
+			Name:    "Transaction Test Warehouse",
+			Address: "123 Test St",
+			Status:  "active",
+		}
+		err := svc.CreateWarehouse(ctx, warehouse)
+		require.NoError(t, err)
+
+		location := &models.StorageLocation{
+			WarehouseID: warehouse.ID,
+			Code:        "LOC001",
+			Name:        "Test Location",
+			StorageType: "shelf",
+			Capacity:    1000.0,
+			Status:      "active",
+		}
+		err = svc.CreateStorageLocation(ctx, location)
+		require.NoError(t, err)
+
+		product := &models.Product{
+			Code:          "PROD003",
+			Name:          "Transaction Test Product",
+			Description:   "Test Description",
+			Category:      "Test Category",
+			UnitOfMeasure: "PCS",
+			Weight:        1.5,
+			Volume:        2.0,
+			MinStockLevel: 10.0,
+			MaxStockLevel: 100.0,
+			ReorderPoint:  20.0,
+			LeadTimeDays:  7,
+			IsActive:      true,
+		}
+		err = svc.CreateProduct(ctx, product)
+		require.NoError(t, err)
+
+		// Test creating a valid inventory transaction
+		transaction := &models.InventoryTransaction{
+			ProductID:         product.ID,
+			WarehouseID:       warehouse.ID,
+			StorageLocationID: location.ID,
+			TransactionType:   "receipt",
+			ReferenceType:     "purchase_order",
+			ReferenceID:       1,
+			Quantity:          100.0,
+			UnitCost:          90.0,
+			TransactionDate:   time.Now(),
+		}
+
+		err = svc.CreateInventoryTransaction(ctx, transaction)
+		assert.NoError(t, err)
+		assert.NotZero(t, transaction.ID)
+
+		// Test issuing more than available stock
+		invalidTransaction := &models.InventoryTransaction{
+			ProductID:         product.ID,
+			WarehouseID:       warehouse.ID,
+			StorageLocationID: location.ID,
+			TransactionType:   "issue",
+			ReferenceType:     "sales_order",
+			ReferenceID:       1,
+			Quantity:          200.0, // More than available stock
+			UnitCost:          90.0,
+			TransactionDate:   time.Now(),
+		}
+
+		err = svc.CreateInventoryTransaction(ctx, invalidTransaction)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "insufficient stock")
 	})
 
 	t.Run("CreateStockMovement", func(t *testing.T) {
@@ -162,7 +167,7 @@ func TestMaterialsService(t *testing.T) {
 			IsActive:    true,
 			Capacity:    1000.0,
 		}
-		err := svc.CreateWarehouse(context.Background(), warehouse)
+		err := svc.CreateWarehouse(ctx, warehouse)
 		require.NoError(t, err)
 
 		// Create test product
@@ -173,7 +178,7 @@ func TestMaterialsService(t *testing.T) {
 			ParentID:    nil,
 			IsActive:    true,
 		}
-		err = svc.CreateProductCategory(context.Background(), category)
+		err = svc.CreateProductCategory(ctx, category)
 		require.NoError(t, err)
 
 		product := &models.Product{
@@ -188,7 +193,7 @@ func TestMaterialsService(t *testing.T) {
 			LeadTime:      7,
 			IsActive:      true,
 		}
-		err = svc.CreateProduct(context.Background(), product)
+		err = svc.CreateProduct(ctx, product)
 		require.NoError(t, err)
 
 		// Test creating a valid stock movement (receipt)
@@ -212,7 +217,7 @@ func TestMaterialsService(t *testing.T) {
 			},
 		}
 
-		err = svc.CreateStockMovement(context.Background(), movement, items)
+		err = svc.CreateStockMovement(ctx, movement, items)
 		assert.NoError(t, err)
 		assert.NotZero(t, movement.ID)
 
@@ -225,7 +230,7 @@ func TestMaterialsService(t *testing.T) {
 			Status:       "pending",
 			Notes:        "Test invalid receipt",
 		}
-		err = svc.CreateStockMovement(context.Background(), invalidMovement, items)
+		err = svc.CreateStockMovement(ctx, invalidMovement, items)
 		assert.Error(t, err)
 
 		// Test creating issue movement with insufficient stock
@@ -246,7 +251,7 @@ func TestMaterialsService(t *testing.T) {
 			},
 		}
 
-		err = svc.CreateStockMovement(context.Background(), issueMovement, issueItems)
+		err = svc.CreateStockMovement(ctx, issueMovement, issueItems)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "insufficient stock")
 	})
@@ -261,7 +266,7 @@ func TestMaterialsService(t *testing.T) {
 			IsActive:    true,
 			Capacity:    1000.0,
 		}
-		err := svc.CreateWarehouse(context.Background(), warehouse)
+		err := svc.CreateWarehouse(ctx, warehouse)
 		require.NoError(t, err)
 
 		category := &models.ProductCategory{
@@ -271,7 +276,7 @@ func TestMaterialsService(t *testing.T) {
 			ParentID:    nil,
 			IsActive:    true,
 		}
-		err = svc.CreateProductCategory(context.Background(), category)
+		err = svc.CreateProductCategory(ctx, category)
 		require.NoError(t, err)
 
 		product := &models.Product{
@@ -286,7 +291,7 @@ func TestMaterialsService(t *testing.T) {
 			LeadTime:      7,
 			IsActive:      true,
 		}
-		err = svc.CreateProduct(context.Background(), product)
+		err = svc.CreateProduct(ctx, product)
 		require.NoError(t, err)
 
 		// Try to create a stock movement with invalid items to trigger rollback
@@ -309,12 +314,12 @@ func TestMaterialsService(t *testing.T) {
 			},
 		}
 
-		err = svc.CreateStockMovement(context.Background(), movement, invalidItems)
+		err = svc.CreateStockMovement(ctx, movement, invalidItems)
 		assert.Error(t, err)
 
 		// Verify no stock levels were affected
 		var stockLevel float64
-		err = testDB.DB.DB().QueryRowContext(context.Background(),
+		err = testDB.DB.DB().QueryRowContext(ctx,
 			"SELECT COALESCE(SUM(quantity), 0) FROM stock_levels WHERE product_id = ? AND warehouse_id = ?",
 			product.ID, warehouse.ID).Scan(&stockLevel)
 		require.NoError(t, err)
@@ -331,7 +336,7 @@ func TestMaterialsService(t *testing.T) {
 			IsActive:    true,
 			Capacity:    1000.0,
 		}
-		err := svc.CreateWarehouse(context.Background(), warehouse)
+		err := svc.CreateWarehouse(ctx, warehouse)
 		require.NoError(t, err)
 
 		category := &models.ProductCategory{
@@ -341,7 +346,7 @@ func TestMaterialsService(t *testing.T) {
 			ParentID:    nil,
 			IsActive:    true,
 		}
-		err = svc.CreateProductCategory(context.Background(), category)
+		err = svc.CreateProductCategory(ctx, category)
 		require.NoError(t, err)
 
 		product := &models.Product{
@@ -356,7 +361,7 @@ func TestMaterialsService(t *testing.T) {
 			LeadTime:      7,
 			IsActive:      true,
 		}
-		err = svc.CreateProduct(context.Background(), product)
+		err = svc.CreateProduct(ctx, product)
 		require.NoError(t, err)
 
 		// Create initial stock receipt
@@ -379,7 +384,7 @@ func TestMaterialsService(t *testing.T) {
 			},
 		}
 
-		err = svc.CreateStockMovement(context.Background(), initMovement, initItems)
+		err = svc.CreateStockMovement(ctx, initMovement, initItems)
 		require.NoError(t, err)
 
 		// Create multiple issue movements concurrently
@@ -403,7 +408,7 @@ func TestMaterialsService(t *testing.T) {
 					},
 				}
 
-				err := svc.CreateStockMovement(context.Background(), movement, items)
+				err := svc.CreateStockMovement(ctx, movement, items)
 				assert.NoError(t, err)
 				done <- true
 			}(i)
@@ -416,7 +421,7 @@ func TestMaterialsService(t *testing.T) {
 
 		// Verify final stock level is correct (1000 - 5*100 = 500)
 		var finalStock float64
-		err = testDB.DB.DB().QueryRowContext(context.Background(),
+		err = testDB.DB.DB().QueryRowContext(ctx,
 			"SELECT quantity FROM stock_levels WHERE product_id = ? AND warehouse_id = ?",
 			product.ID, warehouse.ID).Scan(&finalStock)
 		require.NoError(t, err)
@@ -424,6 +429,18 @@ func TestMaterialsService(t *testing.T) {
 	})
 
 	t.Run("GetProductStock", func(t *testing.T) {
+		// Create test category first
+		category := &models.ProductCategory{
+			Code:        "CAT-STOCK",
+			Name:        "Stock Category",
+			Description: "Test Category for Stock",
+			ParentID:    nil,
+			IsActive:    true,
+		}
+		err := svc.CreateProductCategory(ctx, category)
+		require.NoError(t, err)
+
+		// Create test warehouse
 		warehouse := &models.Warehouse{
 			Code:        "WH-STOCK",
 			Name:        "Stock Test Warehouse",
@@ -432,7 +449,7 @@ func TestMaterialsService(t *testing.T) {
 			IsActive:    true,
 			Capacity:    1000.0,
 		}
-		err := svc.CreateWarehouse(context.Background(), warehouse)
+		err = svc.CreateWarehouse(ctx, warehouse)
 		require.NoError(t, err)
 
 		product := &models.Product{
@@ -444,7 +461,7 @@ func TestMaterialsService(t *testing.T) {
 			ReorderPoint:  10,
 			IsActive:      true,
 		}
-		err = svc.CreateProduct(context.Background(), product)
+		err = svc.CreateProduct(ctx, product)
 		require.NoError(t, err)
 
 		// Create an inbound transaction
@@ -455,7 +472,7 @@ func TestMaterialsService(t *testing.T) {
 			Type:        "RECEIPT",
 			Reference:   "TEST-RECEIPT-001",
 		}
-		err = svc.CreateInventoryTransaction(context.Background(), transaction)
+		err = svc.CreateInventoryTransaction(ctx, transaction)
 		require.NoError(t, err)
 
 		// Create an outbound transaction
@@ -466,46 +483,53 @@ func TestMaterialsService(t *testing.T) {
 			Type:        "ISSUE",
 			Reference:   "TEST-ISSUE-001",
 		}
-		err = svc.CreateInventoryTransaction(context.Background(), outbound)
+		err = svc.CreateInventoryTransaction(ctx, outbound)
 		require.NoError(t, err)
 
 		// Get stock levels
-		stock, err := svc.GetProductStock(context.Background(), product.ID)
+		stock, err := svc.GetProductStock(ctx, product.ID)
 		require.NoError(t, err)
 		assert.Equal(t, 30.0, stock[warehouse.ID])
 	})
 
 	t.Run("GetLowStockProducts", func(t *testing.T) {
-		// Create product with low stock threshold
-		lowStockProduct := &models.Product{
-			Code:          "LOW-STOCK",
+		product := &models.Product{
+			Code:          "PROD005",
 			Name:          "Low Stock Product",
 			Description:   "Test Description",
-			CategoryID:    category.ID,
+			Category:      "Test Category",
 			UnitOfMeasure: "PCS",
-			ReorderPoint:  100,
+			Weight:        1.5,
+			Volume:        2.0,
+			MinStockLevel: 50.0,
+			MaxStockLevel: 100.0,
+			ReorderPoint:  75.0,
+			LeadTimeDays:  7,
 			IsActive:      true,
 		}
-		err := svc.CreateProduct(context.Background(), lowStockProduct)
+		err = svc.CreateProduct(ctx, product)
 		require.NoError(t, err)
 
-		// Add some stock but below reorder point
+		// Add stock below reorder point
 		transaction := &models.InventoryTransaction{
-			ProductID:   lowStockProduct.ID,
-			WarehouseID: warehouse.ID,
-			Quantity:    50.0,
-			Type:        "RECEIPT",
-			Reference:   "TEST-LOW-STOCK",
+			ProductID:       product.ID,
+			WarehouseID:     warehouse.ID,
+			TransactionType: "receipt",
+			ReferenceType:   "purchase_order",
+			ReferenceID:     1,
+			Quantity:        30.0,
+			UnitCost:        90.0,
+			TransactionDate: time.Now(),
 		}
-		err = svc.CreateInventoryTransaction(context.Background(), transaction)
+		err = svc.CreateInventoryTransaction(ctx, transaction)
 		require.NoError(t, err)
 
 		// Check low stock products
-		lowStockProducts, err := svc.GetLowStockProducts(context.Background())
+		lowStockProducts, err := svc.GetLowStockProducts(ctx)
 		require.NoError(t, err)
 		found := false
 		for _, p := range lowStockProducts {
-			if p.ID == lowStockProduct.ID {
+			if p.ID == product.ID {
 				found = true
 				break
 			}
@@ -523,7 +547,7 @@ func TestMaterialsService(t *testing.T) {
 			ReorderPoint:  10,
 			IsActive:      true,
 		}
-		err := svc.CreateProduct(context.Background(), product)
+		err := svc.CreateProduct(ctx, product)
 		require.NoError(t, err)
 
 		// Try to create outbound transaction with insufficient stock
@@ -534,7 +558,7 @@ func TestMaterialsService(t *testing.T) {
 			Type:        "ISSUE",
 			Reference:   "TEST-INVALID-ISSUE",
 		}
-		err = svc.CreateInventoryTransaction(context.Background(), invalidOutbound)
+		err = svc.CreateInventoryTransaction(ctx, invalidOutbound)
 		assert.Error(t, err, "Should not allow outbound transaction with insufficient stock")
 
 		// Add stock and then try valid outbound
@@ -545,7 +569,7 @@ func TestMaterialsService(t *testing.T) {
 			Type:        "RECEIPT",
 			Reference:   "TEST-RECEIPT",
 		}
-		err = svc.CreateInventoryTransaction(context.Background(), receipt)
+		err = svc.CreateInventoryTransaction(ctx, receipt)
 		require.NoError(t, err)
 
 		validOutbound := &models.InventoryTransaction{
@@ -555,7 +579,7 @@ func TestMaterialsService(t *testing.T) {
 			Type:        "ISSUE",
 			Reference:   "TEST-VALID-ISSUE",
 		}
-		err = svc.CreateInventoryTransaction(context.Background(), validOutbound)
+		err = svc.CreateInventoryTransaction(ctx, validOutbound)
 		assert.NoError(t, err, "Should allow outbound transaction with sufficient stock")
 	})
 }

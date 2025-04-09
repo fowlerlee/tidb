@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"tidb-erp-wrapper/config"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/config"
 
 	_ "github.com/go-sql-driver/mysql"
 )

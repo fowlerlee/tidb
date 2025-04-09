@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"tidb-erp-wrapper/internal/db"
-	"tidb-erp-wrapper/internal/models"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/db"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/models"
 )
 
 type Service struct {

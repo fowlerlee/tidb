@@ -2,7 +2,7 @@ package testutil
 
 import (
 	"fmt"
-	"tidb-erp-wrapper/internal/models"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/models"
 	"time"
 )
 

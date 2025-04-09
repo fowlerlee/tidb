@@ -2,10 +2,12 @@ package hr
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
-	"tidb-erp-wrapper/internal/models"
-	"tidb-erp-wrapper/internal/testutil"
+
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/models"
+	"github.com/fowlerlee/tidb/tidb-erp-wrapper/internal/testutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -172,9 +174,9 @@ func TestHRService(t *testing.T) {
 			Code:            "AL",
 			Name:            "Annual Leave",
 			Description:     "Regular annual leave",
-			Paid:           true,
+			Paid:            true,
 			AnnualAllowance: 20.0,
-			IsActive:       true,
+			IsActive:        true,
 		}
 		err = svc.CreateLeaveType(context.Background(), leaveType)
 		require.NoError(t, err)
@@ -266,11 +268,13 @@ func TestHRService(t *testing.T) {
 
 		// Test recording valid attendance
 		now := time.Now()
+		nowPtr := now
+		checkOutTime := now.Add(9 * time.Hour)
 		record := &models.AttendanceRecord{
 			EmployeeID: employee.ID,
-			Date:       now.Format("2006-01-02"),
-			CheckIn:    now,
-			CheckOut:   now.Add(9 * time.Hour),
+			Date:       now,
+			CheckIn:    &nowPtr,
+			CheckOut:   &checkOutTime,
 			Status:     "present",
 			Notes:      "Regular workday",
 		}
@@ -282,9 +286,9 @@ func TestHRService(t *testing.T) {
 		// Test recording duplicate attendance
 		dupRecord := &models.AttendanceRecord{
 			EmployeeID: employee.ID,
-			Date:       now.Format("2006-01-02"),
-			CheckIn:    now,
-			CheckOut:   now.Add(9 * time.Hour),
+			Date:       now,
+			CheckIn:    &nowPtr,
+			CheckOut:   &checkOutTime,
 			Status:     "present",
 			Notes:      "Duplicate attendance",
 		}
@@ -293,11 +297,12 @@ func TestHRService(t *testing.T) {
 		assert.Error(t, err)
 
 		// Test recording attendance with invalid checkout time
+		invalidCheckout := now.Add(-1 * time.Hour)
 		invalidRecord := &models.AttendanceRecord{
 			EmployeeID: employee.ID,
-			Date:       now.Format("2006-01-02"),
-			CheckIn:    now,
-			CheckOut:   now.Add(-1 * time.Hour), // Checkout before checkin
+			Date:       now,
+			CheckIn:    &nowPtr,
+			CheckOut:   &invalidCheckout,
 			Status:     "present",
 			Notes:      "Invalid checkout time",
 		}
@@ -357,9 +362,9 @@ func TestHRService(t *testing.T) {
 			Code:            "AL",
 			Name:            "Annual Leave",
 			Description:     "Regular annual leave",
-			Paid:           true,
+			Paid:            true,
 			AnnualAllowance: 20.0,
-			IsActive:       true,
+			IsActive:        true,
 		}
 		err = svc.CreateLeaveType(context.Background(), leaveType)
 		require.NoError(t, err)
@@ -372,8 +377,8 @@ func TestHRService(t *testing.T) {
 				request := &models.LeaveRequest{
 					EmployeeID:  employee.ID,
 					LeaveTypeID: leaveType.ID,
-					StartDate:   startDate.AddDate(0, 0, i*7),    // Different weeks
-					EndDate:     startDate.AddDate(0, 0, i*7+2),  // 3 days each
+					StartDate:   startDate.AddDate(0, 0, i*7),   // Different weeks
+					EndDate:     startDate.AddDate(0, 0, i*7+2), // 3 days each
 					TotalDays:   3.0,
 					Status:      "pending",
 					Reason:      fmt.Sprintf("Vacation %d", i),
