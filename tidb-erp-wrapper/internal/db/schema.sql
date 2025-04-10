@@ -1,3 +1,9 @@
+
+
+ALTER USER 'root'@'%' IDENTIFIED BY 'your_secret_password';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION; -- Ensure permissions are granted
+FLUSH PRIVILEGES;
+
 -- Create database
 CREATE DATABASE IF NOT EXISTS erp_db;
 USE erp_db;
