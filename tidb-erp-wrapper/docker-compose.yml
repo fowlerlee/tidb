@@ -16,6 +16,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - erp-network
 
   app:
     build: 
@@ -23,12 +25,18 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-    environment:
-      - DATABASE_HOST=tidb
-      - DATABASE_PORT=4000
-      - DATABASE_USER=root
-      - DATABASE_PASSWORD=
-      - DATABASE_NAME=erp_db
     depends_on:
       tidb:
         condition: service_healthy
+    networks:
+      - erp-network
+    environment:
+      - DB_HOST=tidb
+      - DB_PORT=4000
+      - DB_USER=root
+      - DB_PASSWORD=
+      - DB_NAME=erpdb
+
+networks:
+  erp-network:
+    driver: bridge

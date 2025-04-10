@@ -34,7 +34,7 @@ func TestProcurementService(t *testing.T) {
 	})
 
 	t.Run("CreatePurchaseOrder", func(t *testing.T) {
-		
+
 		// Create test supplier first
 		supplier := testutil.GenerateSupplier(0)
 		err := svc.CreateSupplier(ctx, supplier)
@@ -42,17 +42,14 @@ func TestProcurementService(t *testing.T) {
 
 		// Test creating a valid purchase order
 		po := testutil.GeneratePurchaseOrder(0, supplier.ID)
-		items := []*models.PurchaseOrderItem{
-			testutil.GeneratePurchaseOrderItem(0, 0),
-			testutil.GeneratePurchaseOrderItem(0, 0),
+
+		// Create items as non-pointer values since the service expects []models.PurchaseOrderItem
+		items := []models.PurchaseOrderItem{
+			*testutil.GeneratePurchaseOrderItem(0, 0),
+			*testutil.GeneratePurchaseOrderItem(0, 0),
 		}
 
-		// Convert []*models.PurchaseOrderItem to []models.PurchaseOrderItem
-		convertedItems := make([]models.PurchaseOrderItem, len(items))
-		for i, item := range items {
-			convertedItems[i] = *item
-		}
-		err = svc.CreatePurchaseOrder(ctx, po, convertedItems)
+		err = svc.CreatePurchaseOrder(ctx, po, items)
 		assert.NoError(t, err)
 		assert.NotZero(t, po.ID)
 
@@ -74,8 +71,8 @@ func TestProcurementService(t *testing.T) {
 		require.NoError(t, err)
 
 		po := testutil.GeneratePurchaseOrder(0, supplier.ID)
-		items := []*models.PurchaseOrderItem{
-			testutil.GeneratePurchaseOrderItem(0, 0),
+		items := []models.PurchaseOrderItem{
+			*testutil.GeneratePurchaseOrderItem(0, 0),
 		}
 		err = svc.CreatePurchaseOrder(ctx, po, items)
 		require.NoError(t, err)
@@ -101,18 +98,23 @@ func TestProcurementService(t *testing.T) {
 
 		// Create a purchase order with invalid items to trigger rollback
 		po := testutil.GeneratePurchaseOrder(0, supplier.ID)
-		items := []*models.PurchaseOrderItem{
+
+		// Create invalid items that should cause the transaction to fail
+		invalidItems := []models.PurchaseOrderItem{
 			{
-				PurchaseOrderID: 0,
-				ProductCode:     "", // Invalid product code
-				Quantity:        -1, // Invalid quantity
+				ProductCode: "",     // Invalid empty product code
+				Quantity:    -1,     // Invalid negative quantity
+				Description: "Test", // Add required description
+				UnitPrice:   10.0,   // Add required unit price
+				TotalPrice:  -10.0,  // Invalid negative total price
+				TaxRate:     0.1,    // Add required tax rate
 			},
 		}
 
-		err = svc.CreatePurchaseOrder(ctx, po, items)
+		err = svc.CreatePurchaseOrder(ctx, po, invalidItems)
 		assert.Error(t, err)
 
-		// Verify the purchase order was not created
+		// Verify the purchase order was not created due to rollback
 		fetchedPO, _, err := svc.GetPurchaseOrderByID(ctx, po.ID)
 		assert.Error(t, err)
 		assert.Nil(t, fetchedPO)
