@@ -1,5 +1,3 @@
-
-
 ALTER USER 'root'@'%' IDENTIFIED BY 'your_secret_password';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION; -- Ensure permissions are granted
 FLUSH PRIVILEGES;
@@ -594,4 +592,82 @@ CREATE TABLE IF NOT EXISTS quality_notifications (
     INDEX idx_type (type),
     INDEX idx_status (status),
     INDEX idx_reference (reference_type, reference_id)
+);
+
+-- Loan Management tables
+CREATE TABLE IF NOT EXISTS companies (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    registration_number VARCHAR(50) NOT NULL UNIQUE,
+    tax_id VARCHAR(50),
+    contact_person VARCHAR(100),
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_company_reg_num (registration_number),
+    INDEX idx_company_active (is_active)
+);
+
+CREATE TABLE IF NOT EXISTS loans (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    loan_number VARCHAR(50) NOT NULL UNIQUE,
+    lender_company_id BIGINT NOT NULL,
+    borrower_company_id BIGINT NOT NULL,
+    principal_amount DECIMAL(15,2) NOT NULL,
+    outstanding_amount DECIMAL(15,2) NOT NULL,
+    interest_rate DECIMAL(6,3) NOT NULL, 
+    start_date DATE NOT NULL,
+    maturity_date DATE NOT NULL,
+    payment_frequency VARCHAR(20) NOT NULL,
+    payment_day INT NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    collateral_details TEXT,
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (lender_company_id) REFERENCES companies(id),
+    FOREIGN KEY (borrower_company_id) REFERENCES companies(id),
+    INDEX idx_loan_number (loan_number),
+    INDEX idx_loan_status (status),
+    INDEX idx_lender (lender_company_id),
+    INDEX idx_borrower (borrower_company_id)
+);
+
+CREATE TABLE IF NOT EXISTS loan_payments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    loan_id BIGINT NOT NULL,
+    payment_number VARCHAR(50) NOT NULL,
+    payment_date DATE NOT NULL,
+    principal_amount DECIMAL(15,2) NOT NULL,
+    interest_amount DECIMAL(15,2) NOT NULL,
+    total_amount DECIMAL(15,2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    transaction_reference VARCHAR(100),
+    notes TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (loan_id) REFERENCES loans(id),
+    INDEX idx_payment_number (payment_number),
+    INDEX idx_loan (loan_id)
+);
+
+CREATE TABLE IF NOT EXISTS loan_schedule_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    loan_id BIGINT NOT NULL,
+    scheduled_date DATE NOT NULL,
+    principal_amount DECIMAL(15,2) NOT NULL,
+    interest_amount DECIMAL(15,2) NOT NULL,
+    total_amount DECIMAL(15,2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    actual_payment_id BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (loan_id) REFERENCES loans(id),
+    FOREIGN KEY (actual_payment_id) REFERENCES loan_payments(id),
+    INDEX idx_loan (loan_id),
+    INDEX idx_status (status),
+    INDEX idx_scheduled_date (scheduled_date)
 );
